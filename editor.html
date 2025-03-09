@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Editor</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #f0f0f0;
+    }
+    .editor-container {
+      display: flex;
+      height: 100vh;
+    }
+    .tools {
+      width: 35%;
+      background-color: #aaf;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .image-preview {
+      width: 65%;
+      background-color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    #preview {
+      max-width: 100%;
+      max-height: 90vh;
+      border: 2px dashed #ccc;
+      border-radius: 10px;
+    }
+    .tool {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    .tool input[type="file"] {
+      display: none;
+    }
+    .tool label {
+      display: block;
+      background-color: #007bff;
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .tool label:hover {
+      background-color: #0056b3;
+    }
+    .tool button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+    }
+    .tool button:hover {
+      background-color: #218838;
+    }
+    .tool select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div class="editor-container">
+    <!-- Tools Section (35%) -->
+    <div class="tools">
+      <h2>Image Editor Tools</h2>
+      <!-- File Upload -->
+      <div class="tool">
+        <label for="file-upload">Upload Image</label>
+        <input type="file" id="file-upload" accept="image/*">
+      </div>
+      <!-- Resize -->
+      <div class="tool">
+        <input type="number" id="width" placeholder="Width (px)" class="form-control">
+        <input type="number" id="height" placeholder="Height (px)" class="form-control">
+        <button onclick="resizeImage()">Resize</button>
+      </div>
+      <!-- Compress -->
+      <div class="tool">
+        <input type="range" id="quality" min="0" max="1" step="0.1" value="1" class="form-control">
+        <button onclick="compressImage()">Compress (Quality: <span id="quality-value">1</span>)</button>
+      </div>
+      <!-- Format Change -->
+      <div class="tool">
+        <select id="format">
+          <option value="jpg">JPG</option>
+          <option value="png">PNG</option>
+          <option value="webp">WEBP</option>
+        </select>
+        <button onclick="changeFormat()">Change Format</button>
+      </div>
+      <!-- Download -->
+      <div class="tool">
+        <input type="text" id="image-name" placeholder="Image Name" class="form-control">
+        <button onclick="downloadImage()">Download Image</button><br>
+        <button onclick="window.location.href='index.html'" style="background-color:blue;">Back</button>
+      </div>
+    </div>
+    <!-- Image Preview Section (65%) -->
+    <div class="image-preview">
+      <img id="preview" src="" alt="Image Preview">
+    </div>
+  </div>
+
+  <!-- Bootstrap JS and dependencies -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script>
+    let imageFile = null;
+    let canvas = document.createElement('canvas');
+    let ctx = canvas.getContext('2d');
+    let originalWidth, originalHeight;
+
+    // Enable high-quality image smoothing
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    // File Upload
+    document.getElementById('file-upload').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            // Set canvas dimensions to match the original image
+            originalWidth = img.width;
+            originalHeight = img.height;
+            canvas.width = originalWidth;
+            canvas.height = originalHeight;
+            ctx.drawImage(img, 0, 0, originalWidth, originalHeight);
+            document.getElementById('preview').src = canvas.toDataURL();
+            imageFile = file;
+          };
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Resize Image
+    function resizeImage() {
+      const width = parseInt(document.getElementById('width').value);
+      const height = parseInt(document.getElementById('height').value);
+      if (width && height) {
+        const img = new Image();
+        img.src = canvas.toDataURL();
+        img.onload = () => {
+          // Set canvas dimensions to the new size
+          canvas.width = width;
+          canvas.height = height;
+          // Draw the image with high-quality smoothing
+          ctx.drawImage(img, 0, 0, width, height);
+          document.getElementById('preview').src = canvas.toDataURL();
+        };
+      } else {
+        alert('Please enter valid width and height.');
+      }
+    }
+
+    // Compress Image
+    function compressImage() {
+      const quality = parseFloat(document.getElementById('quality').value);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      document.getElementById('preview').src = dataUrl;
+      document.getElementById('quality-value').textContent = quality;
+    }
+
+    // Change Format
+    function changeFormat() {
+      const format = document.getElementById('format').value;
+      const dataUrl = canvas.toDataURL(`image/${format}`);
+      document.getElementById('preview').src = dataUrl;
+    }
+
+    // Download Image
+    function downloadImage() {
+      const name = document.getElementById('image-name').value || 'edited-image';
+      const format = document.getElementById('format').value;
+      const link = document.createElement('a');
+      link.download = `${name}.${format}`;
+      link.href = canvas.toDataURL(`image/${format}`);
+      link.click();
+    }
+
+    // Update Quality Value
+    document.getElementById('quality').addEventListener('input', (e) => {
+      document.getElementById('quality-value').textContent = e.target.value;
+    });
+  </script>
+</body>
+</html>
